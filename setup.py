@@ -13,7 +13,8 @@ setup(
         "pre-commit",
         "pytest-mock",
         "black",
-        "requests"
+        "requests",
+        "pyyaml"
     ],
     entry_points="""
         [console_scripts]
