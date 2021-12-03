@@ -6,7 +6,7 @@ setup(
     version=__version__,
     packages=["trcli", "trcli.commands"],
     include_package_data=True,
-    install_requires=["click", "requests", "pyyaml", "junitparser", "pre-commit"],
+    install_requires=["click", "requests", "pyyaml", "junitparser", "pre-commit", "black"],
     entry_points="""
         [console_scripts]
         trcli=trcli.cli:cli
