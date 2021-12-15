@@ -4,7 +4,7 @@ from requests_mock import Mocker
 from tests.helpers.api_client_helpers import TEST_RAIL_URL, create_url
 from tests.test_data.data_provider_post import test_input
 from trcli.api.api_request_handler import ApiRequestHandler
-from trcli.api_client import APIClient
+from trcli.api.api_client import APIClient
 from trcli.cli import Environment
 
 

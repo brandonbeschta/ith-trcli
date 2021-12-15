@@ -1,4 +1,4 @@
-from trcli.api_client import APIClient, APIClientResult
+from trcli.api.api_client import APIClient, APIClientResult
 from trcli.cli import Environment
 from trcli.data_classes.dataclass_testrail import SuitesDataclass
 from trcli.data_providers.api_data_provider import ApiPostProvider
