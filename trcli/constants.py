@@ -1,4 +1,5 @@
 import trcli
+import enum
 
 FAULT_MAPPING = dict(
     missing_file="Please provide a valid path to your results file with the -f argument.",
@@ -42,3 +43,9 @@ Supported and loaded modules:
 
 MISSING_COMMAND_SLOGAN = """Usage: trcli [OPTIONS] COMMAND [ARGS]...\nTry 'trcli --help' for help.
 \nError: Missing command."""
+
+
+class ProjectErrors(enum.IntEnum):
+    multiple_project_same_name = -1
+    not_existing_project = -2
+    other_error = -3
