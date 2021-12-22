@@ -3,7 +3,8 @@ from trcli.api.results_uploader import ResultsUploader
 from trcli.cli import Environment
 from trcli.constants import FAULT_MAPPING, PROMPT_MESSAGES
 from trcli.readers.junit_xml import JunitParser
-from trcli.api.api_request_handler import ApiPostProvider, ApiRequestHandler
+from trcli.api.api_request_handler import ProjectData
+from trcli.constants import ProjectErrors
 
 
 class TestResultsUploader:
@@ -34,12 +35,14 @@ class TestResultsUploader:
         result_uploader = ResultsUploader(
             environment=environment, result_file_parser=junit_file_parser
         )
-        result_uploader.api_request_handler.get_project_data.return_value = (-1, 2, "")
+        result_uploader.api_request_handler.get_project_id.return_value = ProjectData(project_id=ProjectErrors.not_existing_project,
+                                                                                      suite_mode=-1,
+                                                                                      error_message=f"{environment.project} project doesn't exists.")
 
         with pytest.raises(SystemExit) as exception:
             _ = result_uploader.upload_results()
 
-        environment.log.assert_called_with(FAULT_MAPPING["missing_project"])
+        environment.log.assert_called_with(f"{environment.project} project doesn't exists.")
         assert (
             exception.type == SystemExit
         ), f"Expected SystemExit exception, but got {exception.type} instead."
@@ -57,7 +60,9 @@ class TestResultsUploader:
         result_uploader = ResultsUploader(
             environment=environment, result_file_parser=junit_file_parser
         )
-        result_uploader.api_request_handler.get_project_data.return_value = (-2, 2, "Unable to connect")
+        result_uploader.api_request_handler.get_project_id.return_value = ProjectData(project_id=ProjectErrors.other_error,
+                                                                                      suite_mode=-1,
+                                                                                      error_message="Unable to connect")
 
         with pytest.raises(SystemExit) as exception:
             _ = result_uploader.upload_results()
@@ -81,7 +86,9 @@ class TestResultsUploader:
         result_uploader = ResultsUploader(
             environment=environment, result_file_parser=junit_file_parser
         )
-        result_uploader.api_request_handler.get_project_data.return_value = (project_id, 1, "")
+        result_uploader.api_request_handler.get_project_id.return_value = ProjectData(project_id=10,
+                                                                                      suite_mode=1,
+                                                                                      error_message="")
         result_uploader._ResultsUploader__get_suite_id_log_errors = mocker.Mock()
         result_uploader._ResultsUploader__get_suite_id_log_errors.return_value = -1
 
@@ -123,7 +130,6 @@ class TestResultsUploader:
         ), f"Expected exit code 1, but got {exception.value.code} instead."
 
     @pytest.mark.results_uploader
-    @pytest.mark.test123
     def test_check_and_add_test_cases_failed(self, result_uploader_data_provider, mocker):
         (
             environment,
@@ -153,15 +159,126 @@ class TestResultsUploader:
         ), f"Expected exit code 1, but got {exception.value.code} instead."
 
     @pytest.mark.results_uploader
-    def test_add_run_failed(self):
-        assert False
+    @pytest.mark.test123
+    def test_add_run_failed(self, result_uploader_data_provider, mocker):
+        (
+            environment,
+            junit_file_parser,
+            api_request_handler,
+        ) = result_uploader_data_provider
+        project_id = 10
+        result_uploader = ResultsUploader(
+            environment=environment, result_file_parser=junit_file_parser
+        )
+        result_uploader.api_request_handler.get_project_data.return_value = (project_id, 1, "")
+        result_uploader._ResultsUploader__get_suite_id_log_errors = mocker.Mock()
+        result_uploader._ResultsUploader__get_suite_id_log_errors.return_value = 5
+        result_uploader._ResultsUploader__check_for_missing_sections_and_add = mocker.Mock()
+        result_uploader._ResultsUploader__check_for_missing_sections_and_add.return_value = ([10], 1)
+        result_uploader._ResultsUploader__check_for_missing_test_cases_and_add = mocker.Mock()
+        result_uploader._ResultsUploader__check_for_missing_test_cases_and_add.return_value = ([10, 11], 1)
+        result_uploader.api_request_handler.add_run.return_value = ([], "Failed to add run.")
+
+        with pytest.raises(SystemExit) as exception:
+            _ = result_uploader.upload_results()
+
+        assert (
+                exception.type == SystemExit
+        ), f"Expected SystemExit exception, but got {exception.type} instead."
+        assert (
+                exception.value.code == 1
+        ), f"Expected exit code 1, but got {exception.value.code} instead."
 
     @pytest.mark.results_uploader
-    def test_add_results_failed(self):
-        assert False
+    def test_add_results_failed(self, result_uploader_data_provider, mocker):
+        (
+            environment,
+            junit_file_parser,
+            api_request_handler,
+        ) = result_uploader_data_provider
+        project_id = 10
+        result_uploader = ResultsUploader(
+            environment=environment, result_file_parser=junit_file_parser
+        )
+        result_uploader.api_request_handler.get_project_data.return_value = (project_id, 1, "")
+        result_uploader._ResultsUploader__get_suite_id_log_errors = mocker.Mock()
+        result_uploader._ResultsUploader__get_suite_id_log_errors.return_value = 5
+        result_uploader._ResultsUploader__check_for_missing_sections_and_add = mocker.Mock()
+        result_uploader._ResultsUploader__check_for_missing_sections_and_add.return_value = ([10], 1)
+        result_uploader._ResultsUploader__check_for_missing_test_cases_and_add = mocker.Mock()
+        result_uploader._ResultsUploader__check_for_missing_test_cases_and_add.return_value = ([20, 30], 1)
+        result_uploader.api_request_handler.add_run.return_value = ([100], "")
+        result_uploader.api_request_handler.add_results.return_value = ([], "Failed to add results.")
 
-    def test_close_run_failed(self):
-        assert False
+        with pytest.raises(SystemExit) as exception:
+            _ = result_uploader.upload_results()
+
+        assert (
+                exception.type == SystemExit
+        ), f"Expected SystemExit exception, but got {exception.type} instead."
+        assert (
+                exception.value.code == 1
+        ), f"Expected exit code 1, but got {exception.value.code} instead."
+
+    @pytest.mark.results_uploader
+    def test_close_run_failed(self, result_uploader_data_provider, mocker):
+        (
+            environment,
+            junit_file_parser,
+            api_request_handler,
+        ) = result_uploader_data_provider
+        project_id = 10
+        result_uploader = ResultsUploader(
+            environment=environment, result_file_parser=junit_file_parser
+        )
+        result_uploader.api_request_handler.get_project_data.return_value = (project_id, 1, "")
+        result_uploader._ResultsUploader__get_suite_id_log_errors = mocker.Mock()
+        result_uploader._ResultsUploader__get_suite_id_log_errors.return_value = 5
+        result_uploader._ResultsUploader__check_for_missing_sections_and_add = mocker.Mock()
+        result_uploader._ResultsUploader__check_for_missing_sections_and_add.return_value = ([10], 1)
+        result_uploader._ResultsUploader__check_for_missing_test_cases_and_add = mocker.Mock()
+        result_uploader._ResultsUploader__check_for_missing_test_cases_and_add.return_value = ([20, 30], 1)
+        result_uploader.api_request_handler.add_run.return_value = ([100], "")
+        result_uploader.api_request_handler.add_results.return_value = ([1, 2, 3], "")
+        result_uploader.api_request_handler.close_run.return_value = ([], "Failed to close run.")
+
+        with pytest.raises(SystemExit) as exception:
+            _ = result_uploader.upload_results()
+
+        assert (
+                exception.type == SystemExit
+        ), f"Expected SystemExit exception, but got {exception.type} instead."
+        assert (
+                exception.value.code == 1
+        ), f"Expected exit code 1, but got {exception.value.code} instead."
+
+    @pytest.mark.results_uploader
+    def test_upload_results_successful(self, result_uploader_data_provider, mocker):
+        (
+            environment,
+            junit_file_parser,
+            api_request_handler,
+        ) = result_uploader_data_provider
+        project_id = 10
+        result_uploader = ResultsUploader(
+            environment=environment, result_file_parser=junit_file_parser
+        )
+        result_uploader.api_request_handler.get_project_data.return_value = (project_id, 1, "")
+        result_uploader._ResultsUploader__get_suite_id_log_errors = mocker.Mock()
+        result_uploader._ResultsUploader__get_suite_id_log_errors.return_value = 5
+        result_uploader._ResultsUploader__check_for_missing_sections_and_add = mocker.Mock()
+        result_uploader._ResultsUploader__check_for_missing_sections_and_add.return_value = ([10], 1)
+        result_uploader._ResultsUploader__check_for_missing_test_cases_and_add = mocker.Mock()
+        result_uploader._ResultsUploader__check_for_missing_test_cases_and_add.return_value = ([20, 30], 1)
+        result_uploader.api_request_handler.add_run.return_value = ([100], "")
+        result_uploader.api_request_handler.add_results.return_value = ([1, 2, 3], "")
+        result_uploader.api_request_handler.close_run.return_value = ([100], "")
+
+        _ = result_uploader.upload_results()
+        environment.log.assert_any_call("Creating test run.")
+        environment.log.assert_any_call("Done.")
+        environment.log.assert_any_call("Closing test run.")
+        environment.log.assert_any_call("Done.")
 
     @pytest.mark.results_uploader
     def test_get_suite_id_log_errors_returns_valid_id(
@@ -179,7 +296,7 @@ class TestResultsUploader:
         result_uploader = ResultsUploader(
             environment=environment, result_file_parser=junit_file_parser
         )
-        result_uploader.parsed_data.suite_id = suite_id
+        result_uploader.api_request_handler.suites_data_from_provider.suite_id = suite_id
         result_uploader.api_request_handler.check_suite_id.return_value = True
         result = result_uploader._ResultsUploader__get_suite_id_log_errors(
             project_id=project_id
@@ -191,18 +308,20 @@ class TestResultsUploader:
 
     @pytest.mark.results_uploader
     @pytest.mark.parametrize(
-        "user_response, expected_suite_id, expected_message",
+        "user_response, expected_suite_id, expected_message, suite_add_error",
         [
-            (True, 10, "Adding missing suites to project Fake project name ."),
-            (False, -1, FAULT_MAPPING["no_user_agreement"].format(type="suite")),
+            (True, 10, "Adding missing suites to project Fake project name.", False),
+            (True, -1, "Adding missing suites to project Fake project name.", True),
+            (False, -1, FAULT_MAPPING["no_user_agreement"].format(type="suite"), False)
         ],
-        ids=["user agrees", "used does not agree"],
+        ids=["user agrees", "user agrees, fail to add suite", "used does not agree"],
     )
     def test_get_suite_id_log_errors_prompts_user(
         self,
         user_response,
         expected_suite_id,
         expected_message,
+        suite_add_error,
         result_uploader_data_provider,
     ):
         """The purpose of this test is to check that user will be prompted to add suite is one is missing in TestRail.
@@ -213,18 +332,27 @@ class TestResultsUploader:
             api_request_handler,
         ) = result_uploader_data_provider
         project_id = 1
+        suite_name = "Fake suite name"
 
         result_uploader = ResultsUploader(
             environment=environment, result_file_parser=junit_file_parser
         )
-        result_uploader.parsed_data.name = "Fake suite name"
-        result_uploader.api_request_handler.add_suite.return_value = [
-            {
-                "suite_id": expected_suite_id,
-                "name": result_uploader.parsed_data.name,
-            }
-        ]
-        result_uploader.parsed_data.suite_id = None
+        if not suite_add_error:
+            result_uploader.api_request_handler.add_suite.return_value = ([
+                {
+                    "suite_id": expected_suite_id,
+                    "name": suite_name,
+                }
+            ], "")
+        else:
+            result_uploader.api_request_handler.add_suite.return_value = ([
+                {
+                    "suite_id": -1,
+                    "name": suite_name
+                }
+            ], "Failed to add suite.")
+        result_uploader.api_request_handler.suites_data_from_provider.suite_id = None
+        result_uploader.api_request_handler.suites_data_from_provider.name = suite_name
         environment.get_prompt_response_for_auto_creation.return_value = user_response
         result = result_uploader._ResultsUploader__get_suite_id_log_errors(project_id)
 
@@ -233,12 +361,15 @@ class TestResultsUploader:
         ), f"Expected suite_id: {expected_suite_id} but got {result} instead."
         environment.get_prompt_response_for_auto_creation.assert_called_with(
             PROMPT_MESSAGES["create_new_suite"].format(
-                suite_name=result_uploader.parsed_data.name,
+                suite_name=suite_name,
                 project_name=environment.project,
             )
         )
         if user_response:
             result_uploader.api_request_handler.add_suite.assert_called_with(project_id)
+        environment.log.assert_any_call(expected_message)
+        if suite_add_error:
+            environment.log.assert_any_call(FAULT_MAPPING["error_while_adding_suite"].format(error_message="Failed to add suite."))
 
     @pytest.mark.results_uploader
     def test_check_suite_id_log_errors_returns_id(self, result_uploader_data_provider):
@@ -302,7 +433,8 @@ class TestResultsUploader:
             environment=environment, result_file_parser=junit_file_parser
         )
         result_uploader.api_request_handler.check_missing_section_id.return_value = (
-            missing_sections
+            missing_sections,
+            ""
         )
         result = result_uploader._ResultsUploader__check_for_missing_sections_and_add(
             project_id
@@ -368,14 +500,15 @@ class TestResultsUploader:
             environment=environment, result_file_parser=junit_file_parser
         )
         result_uploader.api_request_handler.check_missing_section_id.return_value = (
-            missing_sections
+            missing_sections,
+            ""
         )
         result_uploader.environment.get_prompt_response_for_auto_creation.return_value = (
             user_response
         )
         result_uploader.api_request_handler.add_section.return_value = (
             expected_added_sections,
-            expected_add_sections_error,
+            expected_add_sections_error
         )
 
         (
@@ -415,10 +548,11 @@ class TestResultsUploader:
             environment=environment, result_file_parser=junit_file_parser
         )
         result_uploader.api_request_handler.check_missing_test_cases_ids.return_value = (
-            missing_test_cases
+            missing_test_cases,
+            ""
         )
         result = (
-            result_uploader._ResultsUploader__check_for_missing_test_cases_and_add()
+            result_uploader._ResultsUploader__check_for_missing_test_cases_and_add(project_id)
         )
 
         assert result == (
@@ -481,7 +615,8 @@ class TestResultsUploader:
             environment=environment, result_file_parser=junit_file_parser
         )
         result_uploader.api_request_handler.check_missing_test_cases_ids.return_value = (
-            missing_test_cases
+            missing_test_cases,
+            expected_message
         )
         result_uploader.environment.get_prompt_response_for_auto_creation.return_value = (
             user_response
@@ -494,7 +629,7 @@ class TestResultsUploader:
         (
             result_added_test_cases,
             result_code,
-        ) = result_uploader._ResultsUploader__check_for_missing_test_cases_and_add()
+        ) = result_uploader._ResultsUploader__check_for_missing_test_cases_and_add(project_id)
 
         assert (
             result_code == expected_result_code

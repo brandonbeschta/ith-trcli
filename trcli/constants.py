@@ -19,7 +19,8 @@ FAULT_MAPPING = dict(
     "Make sure that the file exists or the path is correct.",
     missing_suite="Suite with ID '{suite_id}' does not exist in TestRail.",
     no_user_agreement="User did not agree to create '{type}' automatically. Exiting.",
-    error_checking_project="Error while checking a project: '{error_message}'",
+    error_checking_project="Error detected while checking a project: '{error_message}'",
+    error_while_adding_suite="Error detected while adding suite: '{error_message}'"
 )
 
 PROMPT_MESSAGES = dict(
