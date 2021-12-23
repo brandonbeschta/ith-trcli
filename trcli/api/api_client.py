@@ -28,12 +28,15 @@ class APIClient:
     SUFFIX_API_V2_VERSION = "index.php?/api/v2/"
     RETRY_ON = [429, 500]
 
-    def __init__(self, host_name: str, retries: int = 3, timeout: int = 30):
+    def __init__(
+        self, host_name: str, logging_function, retries: int = 3, timeout: int = 30
+    ):
         self.username = ""
         self.password = ""
         self.api_key = ""
         self.retries = retries
         self.timeout = timeout
+        self.logging_function = logging_function
         if not host_name.endswith("/"):
             host_name = host_name + "/"
         self.__url = host_name + self.SUFFIX_API_V2_VERSION
@@ -69,6 +72,11 @@ class APIClient:
 
         for i in range(self.retries + 1):
             error_message = ""
+            self.logging_function(
+                f"\n**** API Call\n"
+                f"method: {method}\n"
+                f"url: {url}\n" + (f"payload: {payload}\n" if payload else "") + "****"
+            )
             try:
                 if method == "POST":
                     response = requests.post(
