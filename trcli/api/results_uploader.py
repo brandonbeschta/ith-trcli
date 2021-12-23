@@ -35,7 +35,9 @@ class ResultsUploader:
             )
             exit(1)
         else:
-            suite_id = self.__get_suite_id_log_errors(project_id=project_data.project_id)
+            suite_id = self.__get_suite_id_log_errors(
+                project_id=project_data.project_id
+            )
             if suite_id == -1:
                 exit(1)
 
@@ -51,7 +53,7 @@ class ResultsUploader:
             ) = self.__check_for_missing_test_cases_and_add(project_data.project_id)
             if result_code == -1:
                 exit(1)
-            self.environment.log(f"Creating test run.")
+            self.environment.log(f"Creating test run. ", new_line=False)
             added_run, error_message = self.api_request_handler.add_run(
                 project_data.project_id, self.environment.title
             )
@@ -67,7 +69,7 @@ class ResultsUploader:
                 self.environment.log(error_message)
                 exit(1)
 
-            self.environment.log("Closing test run.")
+            self.environment.log("Closing test run. ", new_line=False)
             response, error_message = self.api_request_handler.close_run(added_run)
             if error_message:
                 self.environment.log(error_message)
@@ -77,7 +79,6 @@ class ResultsUploader:
     def __get_suite_id_log_errors(self, project_id: int) -> int:
         """side effect: sets suite_id under parsed data"""
         suite_id = -1
-        # TODO: need to take parsed_data from api_request_handler directly. DO NOT USE LOCAL VARIABLE!!!!
         if not self.api_request_handler.suites_data_from_provider.suite_id:
             if self.environment.get_prompt_response_for_auto_creation(
                 PROMPT_MESSAGES["create_new_suite"].format(
@@ -85,13 +86,19 @@ class ResultsUploader:
                     project_name=self.environment.project,
                 )
             ):
-                # TODO: Why list is returned here?
                 self.environment.log(
                     f"Adding missing suites to project {self.environment.project}."
                 )
-                added_suite, error_message = self.api_request_handler.add_suite(project_id)
+                # TODO: Why list is returned here?
+                added_suite, error_message = self.api_request_handler.add_suite(
+                    project_id
+                )
                 if error_message:
-                    self.environment.log(FAULT_MAPPING["error_while_adding_suite"].format(error_message=error_message))
+                    self.environment.log(
+                        FAULT_MAPPING["error_while_adding_suite"].format(
+                            error_message=error_message
+                        )
+                    )
                     suite_id = -1
                 else:
                     suite_id = added_suite[0]["suite_id"]
@@ -117,7 +124,9 @@ class ResultsUploader:
     def __check_for_missing_sections_and_add(self, project_id: int) -> Tuple[list, int]:
         added_sections = []
         result_code = -1
-        missing_sections, _ = self.api_request_handler.check_missing_section_id(project_id)
+        missing_sections, _ = self.api_request_handler.check_missing_section_id(
+            project_id
+        )
         if missing_sections:
             if self.environment.get_prompt_response_for_auto_creation(
                 PROMPT_MESSAGES["create_missing_sections"].format(
@@ -140,10 +149,14 @@ class ResultsUploader:
             result_code = 1
         return added_sections, result_code
 
-    def __check_for_missing_test_cases_and_add(self, project_id: int) -> Tuple[list, int]:
+    def __check_for_missing_test_cases_and_add(
+        self, project_id: int
+    ) -> Tuple[list, int]:
         added_cases = []
         result_code = -1
-        missing_test_cases, _ = self.api_request_handler.check_missing_test_cases_ids(project_id)
+        missing_test_cases, _ = self.api_request_handler.check_missing_test_cases_ids(
+            project_id
+        )
         if missing_test_cases:
             if self.environment.get_prompt_response_for_auto_creation(
                 PROMPT_MESSAGES["create_missing_test_cases"].format(
