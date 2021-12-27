@@ -1,5 +1,7 @@
 import itertools
 
+from click import progressbar
+
 from trcli.api.api_client import APIClient, APIClientResult
 from trcli.cli import Environment
 from trcli.data_classes.dataclass_testrail import TestRailSuite
@@ -233,9 +235,11 @@ class ApiRequestHandler:
         # TODO proper body should be already returned by add_run in DataProvider - To fix in DataProvider
         # TODO DataProvider will set case_id to NONE if not found in test suite. In full flow this shouldn't happen but dataclass or dataprovider should handle this
         add_results_data = self.data_provider.add_results_for_cases()
-        body = {"results": add_results_data["bodies"]["results"]}
-
-        response = self.client.send_post(f"add_results_for_cases/{run_id}", body)
+        devided_test_results = self.__divide_list_into_chunks(add_results_data["bodies"]["results"], self.env.batch_size)
+        with progressbar(devided_test_results) as bar:
+            for result_bulk in bar:
+                body = {"results": result_bulk}
+                response = self.client.send_post(f"add_results_for_cases/{run_id}", body)
         return response.response_text, response.error_message
 
     def close_run(self, run_id: int):
@@ -243,5 +247,7 @@ class ApiRequestHandler:
         response = self.client.send_post(f"close_run/{run_id}", body)
         return response.response_text, response.error_message
 
-
+    @staticmethod
+    def __divide_list_into_chunks(input_list: List, chunk_size) -> List:
+        return [input_list[i:i+chunk_size] for i in range(0, len(input_list), chunk_size)]
 # TODO add check mising test cases ids
