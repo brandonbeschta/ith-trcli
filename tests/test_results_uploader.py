@@ -16,7 +16,7 @@ from tests.test_data.results_provider_test_data import (
 )
 from trcli.api.results_uploader import ResultsUploader
 from trcli.cli import Environment
-from trcli.constants import FAULT_MAPPING, PROMPT_MESSAGES
+from trcli.constants import FAULT_MAPPING, PROMPT_MESSAGES, SuiteModes
 from trcli.readers.junit_xml import JunitParser
 from trcli.constants import ProjectErrors
 
@@ -128,6 +128,7 @@ class TestResultsUploader:
         ) = result_uploader_data_provider
         project_id = 10
         exit_code = 1
+        environment.run_id = None
         results_uploader = ResultsUploader(
             environment=environment, result_file_parser=junit_file_parser
         )
@@ -153,8 +154,13 @@ class TestResultsUploader:
             exception.value.code == exit_code
         ), f"Expected exit code {exit_code}, but got {exception.value.code} instead."
 
+    @pytest.mark.parametrize(
+        "run_id", [None, 10], ids=["No run ID provided", "Run ID provided"]
+    )
     @pytest.mark.results_uploader
-    def test_upload_results_successful(self, result_uploader_data_provider, mocker):
+    def test_upload_results_successful(
+        self, run_id, result_uploader_data_provider, mocker
+    ):
         """The purpose of this test is to check if during successful run of upload_results proper messages
         would be printed."""
         (
@@ -163,6 +169,7 @@ class TestResultsUploader:
             api_request_handler,
         ) = result_uploader_data_provider
         project_id = 10
+        environment.run_id = run_id
         results_uploader = ResultsUploader(
             environment=environment, result_file_parser=junit_file_parser
         )
@@ -175,17 +182,20 @@ class TestResultsUploader:
         upload_results_inner_functions_mocker(
             results_uploader=results_uploader, mocker=mocker, failing_functions=[]
         )
-
+        expected_log_calls = []
+        if not run_id:
+            expected_log_calls.extend(
+                [
+                    mocker.call("Creating test run. ", new_line=False),
+                    mocker.call("Done."),
+                ]
+            )
+        expected_log_calls.extend(
+            [mocker.call("Closing test run. ", new_line=False), mocker.call("Done.")]
+        )
         _ = results_uploader.upload_results()
 
-        environment.log.assert_has_calls(
-            [
-                mocker.call("Creating test run. ", new_line=False),
-                mocker.call("Done."),
-                mocker.call("Closing test run. ", new_line=False),
-                mocker.call("Done."),
-            ]
-        )
+        environment.log.assert_has_calls(expected_log_calls)
 
     @pytest.mark.results_uploader
     def test_get_suite_id_log_errors_returns_valid_id(
@@ -208,7 +218,7 @@ class TestResultsUploader:
         )
         result_uploader.api_request_handler.check_suite_id.return_value = True
         result = result_uploader._ResultsUploader__get_suite_id_log_errors(
-            project_id=project_id
+            project_id=project_id, suite_mode=SuiteModes.single_suite
         )
 
         assert (
@@ -221,7 +231,7 @@ class TestResultsUploader:
         TEST_GET_SUITE_ID_LOG_ERRORS_PROMPTS_USER_TEST_DATA,
         ids=TEST_GET_SUITE_ID_LOG_ERRORS_PROMPTS_USER_IDS,
     )
-    def test_get_suite_id_log_errors_prompts_user(
+    def test_get_suite_id_log_errors_multiple_suites_mode(
         self,
         user_response,
         expected_suite_id,
@@ -240,7 +250,7 @@ class TestResultsUploader:
         ) = result_uploader_data_provider
         project_id = 1
         suite_name = "Fake suite name"
-
+        suite_mode = SuiteModes.multiple_suites
         result_uploader = ResultsUploader(
             environment=environment, result_file_parser=junit_file_parser
         )
@@ -262,7 +272,9 @@ class TestResultsUploader:
         result_uploader.api_request_handler.suites_data_from_provider.suite_id = None
         result_uploader.api_request_handler.suites_data_from_provider.name = suite_name
         environment.get_prompt_response_for_auto_creation.return_value = user_response
-        result = result_uploader._ResultsUploader__get_suite_id_log_errors(project_id)
+        result = result_uploader._ResultsUploader__get_suite_id_log_errors(
+            project_id, suite_mode
+        )
         expected_log_calls = [mocker.call(expected_message)]
         if suite_add_error:
             expected_log_calls.append(
@@ -284,6 +296,132 @@ class TestResultsUploader:
         )
         if user_response:
             result_uploader.api_request_handler.add_suite.assert_called_with(project_id)
+        environment.log.assert_has_calls(expected_log_calls)
+
+    @pytest.mark.results_uploader
+    @pytest.mark.parametrize(
+        "suite_ids, error_message, expected_result_code",
+        [([10], "", 10), ([], "Could not get suites", -1)],
+        ids=["get_suite_ids succeeds", "get_suite_ids fails"],
+    )
+    def test_get_suite_id_log_errors_single_suite_mode(
+        self,
+        suite_ids,
+        error_message,
+        expected_result_code,
+        result_uploader_data_provider,
+        mocker,
+    ):
+        (
+            environment,
+            junit_file_parser,
+            api_request_handler,
+        ) = result_uploader_data_provider
+        project_id = 1
+        suite_mode = SuiteModes.single_suite
+        result_uploader = ResultsUploader(
+            environment=environment, result_file_parser=junit_file_parser
+        )
+        result_uploader.api_request_handler.suites_data_from_provider.suite_id = None
+        result_uploader.api_request_handler.get_suite_ids.return_value = (
+            suite_ids,
+            error_message,
+        )
+        if error_message:
+            expected_log_calls = [mocker.call(error_message)]
+        result = result_uploader._ResultsUploader__get_suite_id_log_errors(
+            project_id, suite_mode
+        )
+
+        assert (
+            result == expected_result_code
+        ), f"Expected result code: {expected_result_code} but got {result} instead."
+        if error_message:
+            environment.log.assert_has_calls(expected_log_calls)
+
+    @pytest.mark.results_uploader
+    @pytest.mark.parametrize(
+        "get_suite_ids_result, expected_result_code, expected_error_message",
+        [
+            (([], "Could not get suites"), -1, "Could not get suites"),
+            (([10], ""), 10, ""),
+            (
+                ([10, 11, 12], ""),
+                -1,
+                FAULT_MAPPING["not_unique_suite_id_single_suite_baselines"].format(
+                    project_name="Fake project name"
+                ),
+            ),
+        ],
+        ids=[
+            "get_suite_ids fails",
+            "get_suite_ids returns one ID",
+            "get_suite_ids returns more than one ID",
+        ],
+    )
+    def test_get_suite_id_log_errors_single_suite_mode_baselines(
+        self,
+        get_suite_ids_result,
+        expected_result_code,
+        expected_error_message,
+        result_uploader_data_provider,
+        mocker,
+    ):
+        (
+            environment,
+            junit_file_parser,
+            api_request_handler,
+        ) = result_uploader_data_provider
+        project_id = 1
+        suite_mode = SuiteModes.single_suite_baselines
+        environment.project = "Fake project name"
+        result_uploader = ResultsUploader(
+            environment=environment, result_file_parser=junit_file_parser
+        )
+        result_uploader.api_request_handler.suites_data_from_provider.suite_id = None
+        result_uploader.api_request_handler.get_suite_ids.return_value = (
+            get_suite_ids_result
+        )
+        if expected_error_message:
+            expected_log_calls = [mocker.call(expected_error_message)]
+        result = result_uploader._ResultsUploader__get_suite_id_log_errors(
+            project_id, suite_mode
+        )
+
+        assert (
+            result == expected_result_code
+        ), f"Expected result code: {expected_result_code} but got {result} instead."
+        if expected_error_message:
+            environment.log.assert_has_calls(expected_log_calls)
+
+    @pytest.mark.results_uploader
+    def test_get_suite_id_log_errors_unknown_suite_mode(
+        self, result_uploader_data_provider, mocker
+    ):
+        (
+            environment,
+            junit_file_parser,
+            api_request_handler,
+        ) = result_uploader_data_provider
+        project_id = 1
+        suite_mode = 4
+        expected_result_code = -1
+        result_uploader = ResultsUploader(
+            environment=environment, result_file_parser=junit_file_parser
+        )
+        result_uploader.api_request_handler.suites_data_from_provider.suite_id = None
+        expected_log_calls = [
+            mocker.call(
+                FAULT_MAPPING["unknown_suite_mode"].format(suite_mode=suite_mode)
+            )
+        ]
+        result = result_uploader._ResultsUploader__get_suite_id_log_errors(
+            project_id, suite_mode
+        )
+
+        assert (
+            result == expected_result_code
+        ), f"Expected result code: {expected_result_code} but got {result} instead."
         environment.log.assert_has_calls(expected_log_calls)
 
     @pytest.mark.results_uploader

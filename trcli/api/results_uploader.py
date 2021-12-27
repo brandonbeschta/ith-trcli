@@ -2,8 +2,8 @@ from typing import Tuple
 
 from trcli.api.api_client import APIClient
 from trcli.cli import Environment
-from trcli.api.api_request_handler import ApiRequestHandler, ProjectData
-from trcli.constants import PROMPT_MESSAGES, FAULT_MAPPING
+from trcli.api.api_request_handler import ApiRequestHandler
+from trcli.constants import PROMPT_MESSAGES, FAULT_MAPPING, SuiteModes
 from trcli.data_classes.dataclass_testrail import TestRailSuite
 from trcli.readers.file_parser import FileParser
 from trcli.constants import ProjectErrors
@@ -36,7 +36,7 @@ class ResultsUploader:
             exit(1)
         else:
             suite_id = self.__get_suite_id_log_errors(
-                project_id=project_data.project_id
+                project_id=project_data.project_id, suite_mode=project_data.suite_mode
             )
             if suite_id == -1:
                 exit(1)
@@ -53,62 +53,97 @@ class ResultsUploader:
             ) = self.__check_for_missing_test_cases_and_add(project_data.project_id)
             if result_code == -1:
                 exit(1)
-            self.environment.log(f"Creating test run. ", new_line=False)
-            added_run, error_message = self.api_request_handler.add_run(
-                project_data.project_id, self.environment.title
-            )
-            if error_message:
-                self.environment.log(error_message)
-                exit(1)
-            self.environment.log("Done.")
 
-            added_results, error_message = self.api_request_handler.add_results(
-                added_run
-            )
+            if not self.environment.run_id:
+                self.environment.log(f"Creating test run. ", new_line=False)
+                added_run, error_message = self.api_request_handler.add_run(
+                    project_data.project_id, self.environment.title
+                )
+                if error_message:
+                    self.environment.log(error_message)
+                    exit(1)
+                self.environment.log("Done.")
+                run_id = added_run
+            else:
+                run_id = self.environment.run_id
+
+            added_results, error_message = self.api_request_handler.add_results(run_id)
             if error_message:
                 self.environment.log(error_message)
                 exit(1)
 
             self.environment.log("Closing test run. ", new_line=False)
-            response, error_message = self.api_request_handler.close_run(added_run)
+            response, error_message = self.api_request_handler.close_run(run_id)
             if error_message:
                 self.environment.log(error_message)
                 exit(1)
             self.environment.log("Done.")
 
-    def __get_suite_id_log_errors(self, project_id: int) -> int:
-        """side effect: sets suite_id under parsed data"""
+    def __get_suite_id_log_errors(self, project_id: int, suite_mode: int) -> int:
         suite_id = -1
         if not self.api_request_handler.suites_data_from_provider.suite_id:
-            if self.environment.get_prompt_response_for_auto_creation(
-                PROMPT_MESSAGES["create_new_suite"].format(
-                    suite_name=self.api_request_handler.suites_data_from_provider.name,
-                    project_name=self.environment.project,
-                )
-            ):
-                self.environment.log(
-                    f"Adding missing suites to project {self.environment.project}."
-                )
-                # TODO: Why list is returned here?
-                added_suite, error_message = self.api_request_handler.add_suite(
-                    project_id
+            if suite_mode == SuiteModes.multiple_suites:
+                suite_id = self.__add_suite(project_id, suite_id)
+            elif suite_mode == SuiteModes.single_suite_baselines:
+                suite_ids, error_message = self.api_request_handler.get_suite_ids(
+                    project_id=project_id
                 )
                 if error_message:
-                    self.environment.log(
-                        FAULT_MAPPING["error_while_adding_suite"].format(
-                            error_message=error_message
-                        )
-                    )
+                    self.environment.log(error_message)
                     suite_id = -1
                 else:
-                    suite_id = added_suite[0]["suite_id"]
+                    if len(suite_ids) > 1:
+                        self.environment.log(
+                            FAULT_MAPPING[
+                                "not_unique_suite_id_single_suite_baselines"
+                            ].format(project_name=self.environment.project)
+                        )
+                    else:
+                        suite_id = suite_ids[0]
+            elif suite_mode == SuiteModes.single_suite:
+                suite_ids, error_message = self.api_request_handler.get_suite_ids(
+                    project_id=project_id
+                )
+                if error_message:
+                    self.environment.log(error_message)
+                    suite_id = -1
+                else:
+                    suite_id = suite_ids[0]
             else:
                 self.environment.log(
-                    FAULT_MAPPING["no_user_agreement"].format(type="suite")
+                    FAULT_MAPPING["unknown_suite_mode"].format(suite_mode=suite_mode)
                 )
+                suite_id = -1
         else:
             suite_id = self.__check_suite_id_log_errors(
                 self.api_request_handler.suites_data_from_provider.suite_id, project_id
+            )
+        return suite_id
+
+    def __add_suite(self, project_id, suite_id):
+        if self.environment.get_prompt_response_for_auto_creation(
+            PROMPT_MESSAGES["create_new_suite"].format(
+                suite_name=self.api_request_handler.suites_data_from_provider.name,
+                project_name=self.environment.project,
+            )
+        ):
+            self.environment.log(
+                f"Adding missing suites to project {self.environment.project}."
+            )
+            # TODO: Why list is returned here?
+            added_suite, error_message = self.api_request_handler.add_suite(project_id)
+            if error_message:
+                self.environment.log(
+                    FAULT_MAPPING["error_while_adding_suite"].format(
+                        error_message=error_message
+                    )
+                )
+                suite_id = -1
+            else:
+                suite_id = added_suite[0]["suite_id"]
+        else:
+            self.environment.log(
+                FAULT_MAPPING["no_user_agreement"].format(type="suite")
             )
         return suite_id
 
@@ -181,10 +216,14 @@ class ResultsUploader:
         logging_function = self.environment.vlog
         if self.environment.timeout:
             api_client = APIClient(
-                self.environment.host, logging_function=logging_function, timeout=self.environment.timeout
+                self.environment.host,
+                logging_function=logging_function,
+                timeout=self.environment.timeout,
             )
         else:
-            api_client = APIClient(self.environment.host, logging_function=logging_function)
+            api_client = APIClient(
+                self.environment.host, logging_function=logging_function
+            )
         api_client.username = self.environment.username
         api_client.password = self.environment.password
         api_client.api_key = self.environment.key

@@ -21,11 +21,15 @@ FAULT_MAPPING = dict(
     missing_suite="Suite with ID '{suite_id}' does not exist in TestRail.",
     no_user_agreement="User did not agree to create '{type}' automatically. Exiting.",
     error_checking_project="Error detected while checking a project: '{error_message}'",
-    error_while_adding_suite="Error detected while adding suite: '{error_message}'"
+    error_while_adding_suite="Error detected while adding suite: '{error_message}'",
+    not_unique_suite_id_single_suite_baselines="One or more baselines created under '{project_name}' (single suite "
+    "with baseline project). Please provide suite ID by "
+    "specifying --suite-id.",
+    unknown_suite_mode="Suite mode: '{suite_mode}' not recognised.",
 )
 
 PROMPT_MESSAGES = dict(
-    create_new_suite="Suite ID was not provided in eather the result file or the command line.\n"
+    create_new_suite="Suite ID was not provided in either the result file or the command line.\n"
     "Would you like to create suite with name '{suite_name}' under project: "
     "'{project_name}'?'",
     create_missing_sections="Some of the sections in provided result file are missing "
@@ -49,3 +53,9 @@ class ProjectErrors(enum.IntEnum):
     multiple_project_same_name = -1
     not_existing_project = -2
     other_error = -3
+
+
+class SuiteModes(enum.IntEnum):
+    single_suite = 1
+    single_suite_baselines = 2
+    multiple_suites = 3

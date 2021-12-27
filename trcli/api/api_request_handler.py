@@ -76,6 +76,28 @@ class ApiRequestHandler:
         else:
             return None, response.error_message
 
+    def get_single_suite_id(self, project_id: int) -> (int, str):
+        """Get suite ID for single suite and single suite with baseline suite modes.
+        : project_id: project id
+        : returns: tuple with suite id and error string"""
+        suite_id = None
+        returned_resource = []
+        response = self.client.send_get(f"get_suites/{project_id}")
+        if not response.error_message:
+            if response.response_text:
+                suite_id = response.response_text[0]["id"]
+                returned_resource = [
+                    {
+                        "suite_id": response.response_text[0]["id"],
+                        "name": response.response_text[0]["name"],
+                    }
+                ]
+            else:
+                suite_id = -1
+
+        self.data_provider.update_data(suite_data=returned_resource)
+        return suite_id, response.error_message
+
     def add_suite(self, project_id: int) -> (List[dict], str):
         """
         Adds suites that doesn't have ID's in DataProvider.
