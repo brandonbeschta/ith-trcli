@@ -44,23 +44,29 @@ class ApiRequestHandler:
                 if project["name"] == project_name
             ]
             if len(available_projects) == 1:
-                return (
-                    ProjectData(project_id=int(available_projects[0]["id"]),
-                                suite_mode=int(available_projects[0]["suite_mode"]),
-                                error_message=response.error_message)
+                return ProjectData(
+                    project_id=int(available_projects[0]["id"]),
+                    suite_mode=int(available_projects[0]["suite_mode"]),
+                    error_message=response.error_message,
                 )
             elif len(available_projects) > 1:
-                return ProjectData(project_id=ProjectErrors.multiple_project_same_name,
-                                   suite_mode=-1,
-                                   error_message="Given project name matches more than one result.")
+                return ProjectData(
+                    project_id=ProjectErrors.multiple_project_same_name,
+                    suite_mode=-1,
+                    error_message="Given project name matches more than one result.",
+                )
             else:
-                return ProjectData(project_id=ProjectErrors.not_existing_project,
-                                   suite_mode=-1,
-                                   error_message=f"{project_name} project doesn't exists.")
+                return ProjectData(
+                    project_id=ProjectErrors.not_existing_project,
+                    suite_mode=-1,
+                    error_message=f"{project_name} project doesn't exists.",
+                )
         else:
-            return ProjectData(project_id=ProjectErrors.other_error,
-                               suite_mode=-1,
-                               error_message=response.error_message)
+            return ProjectData(
+                project_id=ProjectErrors.other_error,
+                suite_mode=-1,
+                error_message=response.error_message,
+            )
 
     def check_suite_id(self, project_id: int) -> (bool, ""):
         """
@@ -76,27 +82,28 @@ class ApiRequestHandler:
         else:
             return None, response.error_message
 
-    def get_single_suite_id(self, project_id: int) -> (int, str):
-        """Get suite ID for single suite and single suite with baseline suite modes.
+    def get_suite_ids(self, project_id: int) -> (int, str):
+        """Get suite IDs for requested project_id.
         : project_id: project id
         : returns: tuple with suite id and error string"""
-        suite_id = None
-        returned_resource = []
+        available_suites = []
+        returned_resources = []
+        error_message = ""
         response = self.client.send_get(f"get_suites/{project_id}")
         if not response.error_message:
-            if response.response_text:
-                suite_id = response.response_text[0]["id"]
-                returned_resource = [
+            for suite in response.response_text:
+                available_suites.append(suite["id"])
+                returned_resources.append(
                     {
-                        "suite_id": response.response_text[0]["id"],
-                        "name": response.response_text[0]["name"],
+                        "suite_id": suite["id"],
+                        "name": suite["name"],
                     }
-                ]
-            else:
-                suite_id = -1
+                )
+        else:
+            error_message = response.error_message
 
-        self.data_provider.update_data(suite_data=returned_resource)
-        return suite_id, response.error_message
+        self.data_provider.update_data(suite_data=returned_resources)
+        return available_suites, error_message
 
     def add_suite(self, project_id: int) -> (List[dict], str):
         """
@@ -115,7 +122,9 @@ class ApiRequestHandler:
             else:
                 error = response.error_message
                 break
+        import pdb
 
+        pdb.set_trace()
         returned_resources = [
             {
                 "suite_id": response.response_text["id"],
@@ -144,7 +153,12 @@ class ApiRequestHandler:
             return (
                 list(
                     set(sections)
-                    - set([section.get("id") for section in response.response_text["sections"]])
+                    - set(
+                        [
+                            section.get("id")
+                            for section in response.response_text["sections"]
+                        ]
+                    )
                 ),
                 response.error_message,
             )
@@ -197,7 +211,12 @@ class ApiRequestHandler:
             return (
                 list(
                     set(test_cases)
-                    - set([test_case.get("id") for test_case in response.response_text["cases"]])
+                    - set(
+                        [
+                            test_case.get("id")
+                            for test_case in response.response_text["cases"]
+                        ]
+                    )
                 ),
                 response.error_message,
             )
@@ -257,11 +276,15 @@ class ApiRequestHandler:
         # TODO proper body should be already returned by add_run in DataProvider - To fix in DataProvider
         # TODO DataProvider will set case_id to NONE if not found in test suite. In full flow this shouldn't happen but dataclass or dataprovider should handle this
         add_results_data = self.data_provider.add_results_for_cases()
-        devided_test_results = self.__divide_list_into_chunks(add_results_data["bodies"]["results"], self.env.batch_size)
+        devided_test_results = self.__divide_list_into_chunks(
+            add_results_data["bodies"]["results"], self.env.batch_size
+        )
         with progressbar(devided_test_results) as bar:
             for result_bulk in bar:
                 body = {"results": result_bulk}
-                response = self.client.send_post(f"add_results_for_cases/{run_id}", body)
+                response = self.client.send_post(
+                    f"add_results_for_cases/{run_id}", body
+                )
         return response.response_text, response.error_message
 
     def close_run(self, run_id: int):
@@ -271,5 +294,10 @@ class ApiRequestHandler:
 
     @staticmethod
     def __divide_list_into_chunks(input_list: List, chunk_size) -> List:
-        return [input_list[i:i+chunk_size] for i in range(0, len(input_list), chunk_size)]
+        return [
+            input_list[i : i + chunk_size]
+            for i in range(0, len(input_list), chunk_size)
+        ]
+
+
 # TODO add check mising test cases ids
