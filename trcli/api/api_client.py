@@ -29,7 +29,11 @@ class APIClient:
     RETRY_ON = [429, 500]
 
     def __init__(
-        self, host_name: str, logging_function, retries: int = 3, timeout: int = 30
+        self,
+        host_name: str,
+        logging_function=print,
+        retries: int = 3,
+        timeout: int = 30,
     ):
         self.username = ""
         self.password = ""
@@ -72,12 +76,8 @@ class APIClient:
 
         for i in range(self.retries + 1):
             error_message = ""
-            self.logging_function(
-                f"\n**** API Call\n"
-                f"method: {method}\n"
-                f"url: {url}\n" + (f"payload: {payload}\n" if payload else "") + "****"
-            )
             try:
+                self.__log_request(method=method, url=url, payload=payload)
                 if method == "POST":
                     response = requests.post(
                         url=url,
@@ -111,7 +111,7 @@ class APIClient:
                     response_text = str(response.content)
                 except AttributeError:
                     error_message = ""
-
+                self.__log_response(response.status_code, response_text)
             if status_code not in self.RETRY_ON:
                 break
 
@@ -124,3 +124,17 @@ class APIClient:
         else:
             password = self.password
         return password
+
+    def __log_request(self, method: str, url: str, payload: dict):
+        self.logging_function(
+            f"\n**** API Call\n"
+            f"method: {method}\n"
+            f"url: {url}\n" + (f"payload: {payload}" if payload else "")
+        )
+
+    def __log_response(self, status_code, body):
+        self.logging_function(
+            f"response status code: {status_code}\n"
+            + f"response body: {body}\n"
+            + "****"
+        )
