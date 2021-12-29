@@ -76,7 +76,23 @@ class TestApiDataProvider:
             }
         ]
         post_data_provider.update_data(case_data=case_updater)
-
         assert (
-            post_data_provider.add_results_for_cases() == post_results_for_cases_body
+            post_data_provider.add_results_for_cases(bulk_size=10)
+            == post_results_for_cases_body
         ), "Adding results data doesn't match expected body"
+
+    @pytest.mark.parametrize(
+        "list_to_divide, bulk_size, expected_result",
+        [
+            ([1, 2, 3, 4, 5, 6], 3, [[1, 2, 3], [4, 5, 6]]),
+            ([1, 2, 3, 4, 5, 6], 4, [[1, 2, 3, 4], [5, 6]]),
+            ([1, 2, 3, 4, 5, 6], 6, [[1, 2, 3, 4, 5, 6]]),
+            ([1, 2, 3, 4, 5, 6], 7, [[1, 2, 3, 4, 5, 6]]),
+            ([], 2, []),
+        ],
+    )
+    def test_divide_list_into_bulks(self, list_to_divide, bulk_size, expected_result):
+        result = ApiDataProvider.divide_list_into_bulks(list_to_divide, bulk_size)
+        assert (
+            result == expected_result
+        ), f"Expected: {expected_result} but got {result} instead."

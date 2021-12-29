@@ -14,6 +14,7 @@ class ResultsUploader:
     Class to be used to upload the results to TestRail.
     Initialized with environment object and result file parser object (any parser derived from FileParser).
     """
+
     def __init__(self, environment: Environment, result_file_parser: FileParser):
         self.environment = environment
         self.result_file_parser = result_file_parser
@@ -21,12 +22,14 @@ class ResultsUploader:
         if self.environment.suite_id:
             self.parsed_data.suite_id = self.environment.suite_id
         self.api_request_handler = ApiRequestHandler(
-            env=self.environment,
+            environment=self.environment,
             api_client=self.__instantiate_api_client(),
             suites_data=self.parsed_data,
         )
         if self.environment.suite_id:
-            self.api_request_handler.data_provider.update_data([{"suite_id": self.environment.suite_id}])
+            self.api_request_handler.data_provider.update_data(
+                [{"suite_id": self.environment.suite_id}]
+            )
 
     def upload_results(self):
         """

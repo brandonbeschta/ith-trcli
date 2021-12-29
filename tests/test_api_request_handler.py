@@ -14,12 +14,13 @@ from trcli.constants import ProjectErrors
 @pytest.fixture(scope="function")
 def api_request_handler():
     api_client = APIClient(host_name=TEST_RAIL_URL)
-    env = Environment()
-    env.project = "Test Project"
+    environment = Environment()
+    environment.project = "Test Project"
+    environment.batch_size = 10
     file_json = open(Path(__file__).parent / "test_data/json/api_request_handler.json")
     json_string = json.dumps(json.load(file_json))
     test_input = from_json(TestRailSuite, json_string)
-    api_request = ApiRequestHandler(env, api_client, test_input)
+    api_request = ApiRequestHandler(environment, api_client, test_input)
     yield api_request
 
 
@@ -225,7 +226,7 @@ class TestApiRequestHandler:
             create_url(f"add_results_for_cases/{run_id}"), json=mocked_response
         )
         resources_added, error = api_request_handler.add_results(run_id)
-        assert mocked_response == resources_added, "Invalid response from add_results"
+        assert [mocked_response] == resources_added, "Invalid response from add_results"
         assert error == "", "Error occurred in add_results"
 
     def test_close_run(self, api_request_handler: ApiRequestHandler, requests_mock):
