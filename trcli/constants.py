@@ -34,6 +34,8 @@ FAULT_MAPPING = dict(
     "specifying --suite-id.",
     unknown_suite_mode="Suite mode: '{suite_mode}' not recognised.",
     error_checking_missing_item="Error occurred while checking for '{missing_item}': '{error_message}'",
+    more_than_one_project="Given project name matches more than one result.",
+    project_doesnt_exists="project doesn't exists.",
 )
 
 PROMPT_MESSAGES = dict(
