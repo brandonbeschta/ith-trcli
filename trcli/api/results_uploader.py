@@ -7,6 +7,7 @@ from trcli.constants import PROMPT_MESSAGES, FAULT_MAPPING, SuiteModes
 from trcli.data_classes.dataclass_testrail import TestRailSuite
 from trcli.readers.file_parser import FileParser
 from trcli.constants import ProjectErrors
+import time
 
 
 class ResultsUploader:
@@ -38,6 +39,7 @@ class ResultsUploader:
         Exits with result code 1 printing proper message to the user in case of a failure
         or with result code 0 if succeeds.
         """
+        start = time.time()
         project_data = self.api_request_handler.get_project_id(self.environment.project)
         if project_data.project_id == ProjectErrors.not_existing_project:
             self.environment.log(project_data.error_message)
@@ -62,12 +64,13 @@ class ResultsUploader:
             if result_code == -1:
                 exit(1)
 
+            start_adding_test_cases = time.time()
             added_test_cases, result_code = self.__add_missing_test_cases(
                 project_data.project_id
             )
             if result_code == -1:
                 exit(1)
-
+            stop_adding_test_cases = time.time()
             if not self.environment.run_id:
                 self.environment.log(f"Creating test run. ", new_line=False)
                 added_run, error_message = self.api_request_handler.add_run(
@@ -80,18 +83,28 @@ class ResultsUploader:
                 run_id = added_run
             else:
                 run_id = self.environment.run_id
-
+            start_adding_results = time.time()
             added_results, error_message = self.api_request_handler.add_results(run_id)
             if error_message:
                 self.environment.log(error_message)
                 exit(1)
 
+            stop_adding_results = time.time()
             self.environment.log("Closing test run. ", new_line=False)
             response, error_message = self.api_request_handler.close_run(run_id)
             if error_message:
                 self.environment.log(error_message)
                 exit(1)
             self.environment.log("Done.")
+        stop = time.time()
+
+        self.environment.log(f"Executed in: {stop - start}")
+        self.environment.log(
+            f"Adding test cases in: {stop_adding_test_cases - start_adding_test_cases}"
+        )
+        self.environment.log(
+            f"Adding results in: {stop_adding_results - start_adding_results}"
+        )
 
     def __get_suite_id(self, project_id: int, suite_mode: int) -> Tuple[int, int]:
         """
