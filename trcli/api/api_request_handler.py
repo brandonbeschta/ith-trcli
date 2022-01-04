@@ -369,7 +369,7 @@ class ApiRequestHandler:
         responses = []
         for future in as_completed(futures):
             if not future.cancelled():
-                responses.append(future.result().response_text)
+                responses.append(future.result())
         return responses
 
     def __cancel_running_futures(self, futures, action_string):
