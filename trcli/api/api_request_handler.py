@@ -31,7 +31,7 @@ class ApiRequestHandler:
     ):
         self.environment = environment
         self.client = api_client
-        self.data_provider = ApiDataProvider(environment, suites_data)
+        self.data_provider = ApiDataProvider(suites_data)
         self.suites_data_from_provider = self.data_provider.suites_input
 
     def get_project_id(self, project_name: str) -> ProjectData:
@@ -321,9 +321,6 @@ class ApiRequestHandler:
                 # When error_message is present we cannot be sure that responses contains all added items.
                 # Iterate through futures to get all responses from done tasks (not cancelled)
                 responses = ApiRequestHandler.retrieve_results_after_cancelling(futures)
-        import pdb
-
-        pdb.set_trace()
         responses = [response.response_text for response in responses]
         return responses, error_message
 
