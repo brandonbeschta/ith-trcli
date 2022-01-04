@@ -4,7 +4,7 @@ from tests.helpers.results_uploader_helper import (
     get_project_id_mocker,
     upload_results_inner_functions_mocker,
 )
-from tests.test_data.results_provider_test_data import (
+from tests.test_data.results_uploader_test_data import (
     TEST_UPLOAD_RESULTS_FLOW_TEST_DATA,
     TEST_UPLOAD_RESULTS_FLOW_IDS,
     TEST_GET_SUITE_ID_PROMPTS_USER_TEST_DATA,
@@ -260,9 +260,7 @@ class TestResultsUploader:
         else:
             results_uploader.api_request_handler.add_suites.return_value = (
                 [{"suite_id": expected_suite_id, "name": suite_name}],
-                FAULT_MAPPING["error_while_adding_suite"].format(
-                    error_message="Failed to add suite."
-                ),
+                "Failed to add suite.",
             )
         results_uploader.api_request_handler.suites_data_from_provider.suite_id = None
         results_uploader.api_request_handler.suites_data_from_provider.name = suite_name
@@ -274,9 +272,7 @@ class TestResultsUploader:
         if suite_add_error:
             expected_log_calls.append(
                 mocker.call(
-                    FAULT_MAPPING["error_while_adding_suite"].format(
-                        error_message="Failed to add suite."
-                    )
+                    "Adding missing suites to project Fake project name. - Failed due to: Failed to add suite."
                 )
             )
 
@@ -328,7 +324,11 @@ class TestResultsUploader:
             error_message,
         )
         if error_message:
-            expected_log_calls = [mocker.call(error_message)]
+            expected_log_calls = [
+                mocker.call(
+                    f"Error detected while getting suite ids: '{error_message}'"
+                )
+            ]
         result_suite_id, result_code = results_uploader._ResultsUploader__get_suite_id(
             project_id, suite_mode
         )
@@ -550,7 +550,11 @@ class TestResultsUploader:
         ) = results_uploader._ResultsUploader__add_missing_sections(project_id)
         expected_log_calls = [mocker.call(expected_message)]
         if expected_add_sections_error:
-            expected_log_calls.append(mocker.call(expected_add_sections_error))
+            expected_log_calls.append(
+                mocker.call(
+                    f"Adding missing sections to the suite. - Failed due to: {expected_add_sections_error}"
+                )
+            )
 
         assert (
             result_code == expected_result_code
@@ -668,7 +672,11 @@ class TestResultsUploader:
         ) = results_uploader._ResultsUploader__add_missing_test_cases(project_id)
         expected_log_calls = [mocker.call(expected_message)]
         if expected_add_test_cases_error:
-            expected_log_calls.append(mocker.call(expected_add_test_cases_error))
+            expected_log_calls.append(
+                mocker.call(
+                    f"Adding missing test cases to the suite. - Failed due to: {expected_add_test_cases_error}"
+                )
+            )
 
         assert (
             result_code == expected_result_code

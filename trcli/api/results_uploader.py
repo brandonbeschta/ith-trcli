@@ -43,6 +43,7 @@ class ResultsUploader:
         or with result code 0 if succeeds.
         """
         start = time.time()
+        self.environment.log(f"Checking project. ", new_line=False)
         project_data = self.api_request_handler.get_project_id(self.environment.project)
         if project_data.project_id == ProjectErrors.not_existing_project:
             self.environment.log(project_data.error_message)
@@ -55,24 +56,30 @@ class ResultsUploader:
             )
             exit(1)
         else:
+            self.environment.log("Done.")
+            self.environment.log(f"Checking suite. ", new_line=False)
             suite_id, result_code = self.__get_suite_id(
                 project_id=project_data.project_id, suite_mode=project_data.suite_mode
             )
             if result_code == -1:
                 exit(1)
-
+            self.environment.log(f"Done.")
+            self.environment.log(f"Checking sections. ", new_line=False)
             added_sections, result_code = self.__add_missing_sections(
                 project_data.project_id
             )
             if result_code == -1:
                 exit(1)
-
+            self.environment.log(f"Done.")
+            self.environment.log(f"Checking test cases. ", new_line=False)
             start_adding_test_cases = time.time()
             added_test_cases, result_code = self.__add_missing_test_cases(
                 project_data.project_id
             )
             if result_code == -1:
                 exit(1)
+            self.environment.log(f"Done.")
+
             stop_adding_test_cases = time.time()
             if not self.environment.run_id:
                 self.environment.log(f"Creating test run. ", new_line=False)
@@ -80,7 +87,11 @@ class ResultsUploader:
                     project_data.project_id, self.environment.title
                 )
                 if error_message:
-                    self.environment.log(error_message)
+                    self.environment.log(
+                        FAULT_MAPPING["error_while_creating_test_run"].format(
+                            error_message=error_message
+                        )
+                    )
                     exit(1)
                 self.environment.log("Done.")
                 run_id = added_run
@@ -89,25 +100,27 @@ class ResultsUploader:
             start_adding_results = time.time()
             added_results, error_message = self.api_request_handler.add_results(run_id)
             if error_message:
-                self.environment.log(error_message)
+                self.environment.log(
+                    FAULT_MAPPING["error_while_adding_results"].format(
+                        error_message=error_message
+                    )
+                )
                 exit(1)
 
             stop_adding_results = time.time()
             self.environment.log("Closing test run. ", new_line=False)
             response, error_message = self.api_request_handler.close_run(run_id)
             if error_message:
-                self.environment.log(error_message)
+                self.environment.log(
+                    FAULT_MAPPING["error_while_closing_run"].format(
+                        error_message=error_message
+                    )
+                )
                 exit(1)
             self.environment.log("Done.")
         stop = time.time()
 
         self.environment.log(f"Executed in: {stop - start}")
-        self.environment.log(
-            f"Adding test cases in: {stop_adding_test_cases - start_adding_test_cases}"
-        )
-        self.environment.log(
-            f"Adding results in: {stop_adding_results - start_adding_results}"
-        )
 
     def __get_suite_id(self, project_id: int, suite_mode: int) -> Tuple[int, int]:
         """
@@ -148,7 +161,11 @@ class ResultsUploader:
                     project_id=project_id
                 )
                 if error_message:
-                    self.environment.log(error_message)
+                    self.environment.log(
+                        FAULT_MAPPING["error_while_getting_suite_ids"].format(
+                            error_message=error_message
+                        )
+                    )
                 else:
                     if len(suite_ids) > 1:
                         self.environment.log(
@@ -164,7 +181,11 @@ class ResultsUploader:
                     project_id=project_id
                 )
                 if error_message:
-                    self.environment.log(error_message)
+                    self.environment.log(
+                        FAULT_MAPPING["error_while_getting_suite_ids"].format(
+                            error_message=error_message
+                        )
+                    )
                 else:
                     suite_id = suite_ids[0]
                     result_code = 1
@@ -281,7 +302,9 @@ class ResultsUploader:
             else:
                 added_items, error_message = add_function()
             if error_message:
-                self.environment.log(error_message)
+                self.environment.log(
+                    f"{adding_message} - Failed due to: {error_message}"
+                )
             else:
                 result_code = 1
         else:

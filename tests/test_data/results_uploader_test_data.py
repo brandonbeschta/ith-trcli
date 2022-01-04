@@ -89,7 +89,12 @@ TEST_ADD_MISSING_TEST_CATAS_PROMPTS_USER_IDS = [
     "used does not agree",
 ]
 TEST_GET_SUITE_ID_SINGLE_SUITE_MODE_BASELINES_TEST_DATA = [
-    (([], "Could not get suites"), -1, -1, "Could not get suites"),
+    (
+        ([], "Could not get suites"),
+        -1,
+        -1,
+        "Error detected while getting suite ids: 'Could not get suites'",
+    ),
     (([10], ""), 10, 1, ""),
     (
         ([10, 11, 12], ""),

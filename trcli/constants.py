@@ -29,6 +29,10 @@ FAULT_MAPPING = dict(
     no_user_agreement="User did not agree to create '{type}' automatically. Exiting.",
     error_checking_project="Error detected while checking a project: '{error_message}'",
     error_while_adding_suite="Error detected while adding suite: '{error_message}'",
+    error_while_creating_test_run="Error detected while creating test run: '{error_message}'",
+    error_while_adding_results="Error detected while adding results: '{error_message}'",
+    error_while_closing_run="Error detected while closing run: '{error_message}'",
+    error_while_getting_suite_ids="Error detected while getting suite ids: '{error_message}'",
     not_unique_suite_id_single_suite_baselines="One or more baselines created under '{project_name}' (single suite "
     "with baseline project). Please provide suite ID by "
     "specifying --suite-id.",
