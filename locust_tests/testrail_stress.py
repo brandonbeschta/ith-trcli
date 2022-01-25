@@ -71,6 +71,15 @@ class TestRailBasicTasks(HttpUser):
             name="/get_results",
         )
 
+    @task
+    def post_cases(self):
+        self.client.post(
+            f"{API_V2_VERSION}add_case/1028",
+            auth=self._return_auth(),
+            name="/post_cases",
+            json={"title": "Test case"},
+        )
+
     def _return_auth(self):
         return HTTPBasicAuth(
             username=self.environment.parsed_options.user,
