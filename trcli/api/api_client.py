@@ -72,6 +72,9 @@ class APIClient:
         return self.__send_request("POST", uri, payload)
 
     def __send_request(self, method: str, uri: str, payload: dict) -> APIClientResult:
+        self.logging_function("\nwaiting 5sec to send")
+        sleep(5)
+        self.logging_function("\ndone waiting")
         status_code = -1
         response_text = ""
         error_message = ""
