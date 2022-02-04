@@ -230,9 +230,13 @@ class ApiRequestHandler:
             }
             for response in responses
         ]
-        self.data_provider.update_data(section_data=returned_resources) if len(
-            returned_resources
-        ) > 0 else "Update skipped"
+        section_update_result = (
+            self.data_provider.update_data(section_data=returned_resources)
+            if len(returned_resources) > 0
+            else "Update skipped"
+        )
+        if not section_update_result:
+            error_message = FAULT_MAPPING["section_update_failure"]
         return returned_resources, error_message
 
     def check_missing_test_cases_ids(self, project_id: int) -> (bool, str):
@@ -299,9 +303,13 @@ class ApiRequestHandler:
             }
             for response in responses
         ]
-        self.data_provider.update_data(case_data=returned_resources) if len(
-            returned_resources
-        ) > 0 else "Update skipped"
+        case_update_result = (
+            self.data_provider.update_data(case_data=returned_resources)
+            if len(returned_resources) > 0
+            else "Update skipped"
+        )
+        if not case_update_result:
+            error_message = FAULT_MAPPING["case_update_failure"]
         return returned_resources, error_message
 
     def update_case_result(self, run_id, case_id):

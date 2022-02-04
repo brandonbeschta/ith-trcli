@@ -34,6 +34,7 @@ TEST_ADD_MISSING_SECTIONS_PROMPTS_USER_TEST_DATA = [
         [10, 11, 12],
         "Adding missing sections to the suite.",
         1,
+        False,
     ),
     (
         True,
@@ -42,6 +43,7 @@ TEST_ADD_MISSING_SECTIONS_PROMPTS_USER_TEST_DATA = [
         [],
         "Adding missing sections to the suite.",
         -1,
+        False,
     ),
     (
         False,
@@ -50,6 +52,7 @@ TEST_ADD_MISSING_SECTIONS_PROMPTS_USER_TEST_DATA = [
         [],
         FAULT_MAPPING["no_user_agreement"].format(type="sections"),
         -1,
+        False,
     ),
 ]
 TEST_ADD_MISSING_SECTIONS_PROMPTS_USER_IDS = [

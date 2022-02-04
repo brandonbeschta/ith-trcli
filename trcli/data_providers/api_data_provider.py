@@ -47,7 +47,8 @@ class ApiDataProvider:
             case_ids = [
                 int(case)
                 for section in self.suites_input.testsections
-                for case in section.testcases]
+                for case in section.testcases
+            ]
         properties = [
             str(prop)
             for section in self.suites_input.testsections
@@ -108,9 +109,9 @@ class ApiDataProvider:
         if suite_data is not None:
             self.__update_suite_data(suite_data)
         if section_data is not None:
-            self.__update_section_data(section_data)
+            return self.__update_section_data(section_data)
         if case_data is not None:
-            self.__update_case_data(case_data)
+            return self.__update_case_data(case_data)
 
     def __update_suite_data(self, suite_data: List[dict]):
         """suite_data comes from add_suite API response
@@ -123,6 +124,17 @@ class ApiDataProvider:
         self.suites_input.suite_id = suite_data[0]["suite_id"]
         for section in self.suites_input.testsections:
             section.suite_id = self.suites_input.suite_id
+
+    def check_section_names_duplicates(self):
+        """
+        Check if section names in result xml file are duplicated.
+        """
+        sections_names = [sections.name for sections in self.suites_input.testsections]
+
+        if len(sections_names) == len(set(sections_names)):
+            return False
+        else:
+            return True
 
     def check_for_case_names_duplicates(self):
         """
@@ -137,26 +149,31 @@ class ApiDataProvider:
         else:
             return True
 
-    def __update_section_data(self, section_data: List[dict]):
+    def __update_section_data(self, section_data: List[dict]) -> bool:
         """section_data comes from add_section API response
         example:
             {
             "name": "Passed test",
              "section_id": 12345
             }
-
+        Returns True on success.
         """
+        sections = [section for section in self.suites_input.testsections]
         for section_updater in section_data:
-            matched_section = next(
-                section
-                for section in self.suites_input.testsections
-                if section["name"] == section_updater["name"]
+            matched_section = list(
+                filter(
+                    lambda section: section["name"] == section_updater["name"], sections
+                )
             )
-            matched_section.section_id = section_updater["section_id"]
-            for case in matched_section.testcases:
-                case.section_id = section_updater["section_id"]
+            if len(matched_section) > 0:
+                matched_section[0].section_id = section_updater["section_id"]
+                for case in matched_section[0].testcases:
+                    case.section_id = section_updater["section_id"]
+                return True
+            else:
+                return False
 
-    def __update_case_data(self, case_data: List[dict]):
+    def __update_case_data(self, case_data: List[dict]) -> bool:
         """case_data comes from add_case API response
         example:
             {
@@ -164,19 +181,23 @@ class ApiDataProvider:
                 "section_id": 1
                 "title": "testCase1",
             }
-
+        Returns True on success.
         """
-        testcases = [sections.testcases for sections in self.suites_input.testsections]
+        testcases_in_sections = [
+            sections.testcases for sections in self.suites_input.testsections
+        ]
+        cases = [case for sublist in testcases_in_sections for case in sublist]
         for case_updater in case_data:
-            matched_case = next(
-                case
-                for sublist in testcases
-                for case in sublist
-                if case["title"] == case_updater["title"]
+            matched_case = list(
+                filter(lambda case: case["title"] == case_updater["title"], cases)
             )
-            matched_case.case_id = case_updater["case_id"]
-            matched_case.result.case_id = case_updater["case_id"]
-            matched_case.section_id = case_updater["section_id"]
+            if len(matched_case) > 0:
+                matched_case[0].case_id = case_updater["case_id"]
+                matched_case[0].result.case_id = case_updater["case_id"]
+                matched_case[0].section_id = case_updater["section_id"]
+                return True
+            else:
+                return False
 
     @staticmethod
     def divide_list_into_bulks(input_list: List, bulk_size: int) -> List:

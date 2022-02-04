@@ -530,7 +530,7 @@ class TestResultsUploader:
     @pytest.mark.results_uploader
     @pytest.mark.parametrize(
         "user_response, missing_sections, expected_add_sections_error, expected_added_sections,"
-        "expected_message, expected_result_code",
+        "expected_message, expected_result_code, if_duplicated_names,",
         TEST_ADD_MISSING_SECTIONS_PROMPTS_USER_TEST_DATA,
         ids=TEST_ADD_MISSING_SECTIONS_PROMPTS_USER_IDS,
     )
@@ -542,6 +542,7 @@ class TestResultsUploader:
         expected_added_sections,
         expected_message,
         expected_result_code,
+        if_duplicated_names,
         result_uploader_data_provider,
         mocker,
     ):
@@ -563,6 +564,9 @@ class TestResultsUploader:
         results_uploader.api_request_handler.add_sections.return_value = (
             expected_added_sections,
             expected_add_sections_error,
+        )
+        results_uploader.api_request_handler.data_provider.check_section_names_duplicates.return_value = (
+            if_duplicated_names
         )
 
         (

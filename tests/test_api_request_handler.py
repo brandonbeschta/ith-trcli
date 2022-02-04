@@ -623,6 +623,30 @@ class TestApiRequestHandler:
         ), "There should be error in verification."
 
     @pytest.mark.api_handler
+    def test_add_case_with_verify_and_with_title_error(
+        self, api_request_handler_verify: ApiRequestHandler, requests_mock
+    ):
+        mocked_response_for_case = {
+            "id": 3,
+            "suite_id": 4,
+            "section_id": 1234,
+            "title": "title doesn't match created test case",
+            "estimate": "30s",
+        }
+
+        requests_mock.post(
+            create_url(f"add_case/{mocked_response_for_case['section_id']}"),
+            json=mocked_response_for_case,
+        )
+        del api_request_handler_verify.suites_data_from_provider.testsections[
+            1
+        ].testcases[0]
+        resources_added, error = api_request_handler_verify.add_cases()
+        assert (
+            error == FAULT_MAPPING["case_update_failure"]
+        ), "There should be error detected."
+
+    @pytest.mark.api_handler
     def test_delete_section(
         self, api_request_handler_verify: ApiRequestHandler, requests_mock
     ):
