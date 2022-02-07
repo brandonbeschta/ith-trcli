@@ -61,6 +61,8 @@ class ResultsUploader:
         project_data = self.api_request_handler.get_project_id(
             self.environment.project, self.environment.project_id
         )
+        if project_data.suite_mode == SuiteModes.single_suite:
+            self.parsed_data.suite_id = None
         if project_data.project_id == ProjectErrors.not_existing_project:
             self.environment.elog("\n" + project_data.error_message)
             exit(1)
