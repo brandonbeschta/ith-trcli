@@ -48,6 +48,7 @@ class ApiDataProvider:
                 int(case)
                 for section in self.suites_input.testsections
                 for case in section.testcases
+                if int(case) > 0
             ]
         properties = [
             str(prop)
@@ -156,7 +157,6 @@ class ApiDataProvider:
             "name": "Passed test",
              "section_id": 12345
             }
-        Returns True on success.
         """
         sections = [section for section in self.suites_input.testsections]
         for section_updater in section_data:
@@ -169,11 +169,8 @@ class ApiDataProvider:
                 matched_section[0].section_id = section_updater["section_id"]
                 for case in matched_section[0].testcases:
                     case.section_id = section_updater["section_id"]
-                return True
-            else:
-                return False
 
-    def __update_case_data(self, case_data: List[dict]) -> bool:
+    def __update_case_data(self, case_data: List[dict]):
         """case_data comes from add_case API response
         example:
             {
@@ -181,23 +178,20 @@ class ApiDataProvider:
                 "section_id": 1
                 "title": "testCase1",
             }
-        Returns True on success.
         """
-        testcases_in_sections = [
-            sections.testcases for sections in self.suites_input.testsections
-        ]
-        cases = [case for sublist in testcases_in_sections for case in sublist]
-        for case_updater in case_data:
-            matched_case = list(
-                filter(lambda case: case["title"] == case_updater["title"], cases)
-            )
-            if len(matched_case) > 0:
-                matched_case[0].case_id = case_updater["case_id"]
-                matched_case[0].result.case_id = case_updater["case_id"]
-                matched_case[0].section_id = case_updater["section_id"]
-                return True
-            else:
-                return False
+        for section in self.suites_input.testsections:
+            for case_updater in case_data:
+                matched_case = list(
+                    filter(
+                        lambda case: (case["title"] == case_updater["title"])
+                        and (case["section_id"] == case_updater["section_id"]),
+                        section.testcases,
+                    )
+                )
+                if len(matched_case) > 0:
+                    matched_case[0].case_id = case_updater["case_id"]
+                    matched_case[0].result.case_id = case_updater["case_id"]
+                    matched_case[0].section_id = case_updater["section_id"]
 
     @staticmethod
     def divide_list_into_bulks(input_list: List, bulk_size: int) -> List:
