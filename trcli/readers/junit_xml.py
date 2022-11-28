@@ -76,7 +76,7 @@ class JunitParser(FileParser):
                             TestRailResult(
                                 case_id,
                                 elapsed=case.time,
-                                junit_result_unparsed="auto",
+                                junit_result_unparsed=case.result,
                                 attachments=attachments,
                             )
                         ),
