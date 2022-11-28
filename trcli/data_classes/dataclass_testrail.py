@@ -40,7 +40,6 @@ class TestRailResult:
         3 - Untested
         4 - Retest
         5 - Failed
-        6 - Auto Passed
         """
         if len(junit_result) == 0:
             return 1
@@ -49,8 +48,6 @@ class TestRailResult:
             return 4
         elif test_result_tag == "error" or "failure":
             return 5
-        elif test_result_tag == "custom":
-            return 6
 
     @staticmethod
     def get_comment_from_junit_element(junit_result: list) -> str:
