@@ -42,9 +42,9 @@ class TestRailResult:
         5 - Failed
         6 - Auto Passed
         """
-        test_result_tag = junit_result[0]._tag.lower()
-        if len(junit_result) == 0 and test_result_tag != "custom":
+        if len(junit_result) == 0:
             return 1
+        test_result_tag = junit_result[0]._tag.lower()
         if test_result_tag == "skipped":
             return 4
         elif test_result_tag == "error" or "failure":
