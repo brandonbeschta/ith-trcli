@@ -42,6 +42,7 @@ class TestRailResult:
         5 - Failed
         6 - Auto Passed
         """
+        print(junit_result)
         if len(junit_result) == 0:
             return 1
         test_result_tag = junit_result[0]._tag.lower()

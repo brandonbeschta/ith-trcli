@@ -82,5 +82,6 @@ class TestJunitParser:
         which asdict() method of dataclass can't handle"""
         for section in test_rail_suite.testsections:
             for case in section.testcases:
+                print(case.result)
                 case.result.junit_result_unparsed = []
         return test_rail_suite
