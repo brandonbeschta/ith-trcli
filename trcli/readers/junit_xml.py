@@ -22,17 +22,11 @@ class AutomationPassed(Element):
     message = ''
     text = ''
 
-    def __eq__(self, other):
-        return super(AutomationPassed, self).__eq__(other)
-
 class AutomationFailed(Element):
     _tag = 'autoFail'
     type = 'failure'
     message = 'Automation test failed'
     text = ''
-
-    def __eq__(self, other):
-        return super(AutomationFailed, self).__eq__(other)
 
 class Properties(Element):
     _tag = "properties"

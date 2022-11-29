@@ -46,7 +46,6 @@ class TestRailResult:
         if len(junit_result) == 0:
             return 1
         test_result_tag = junit_result[0]._tag.lower()
-        print(test_result_tag)
         if test_result_tag == "skipped":
             return 4
         elif test_result_tag == "error" or test_result_tag == "failure":
