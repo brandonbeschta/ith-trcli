@@ -51,9 +51,9 @@ class TestRailResult:
             return 4
         elif test_result_tag == "error" or "failure":
             return 5
-        elif test_result_tag == "autoPass":
+        elif test_result_tag == "autopass":
             return 6
-        elif test_result_tag == "autoFail":
+        elif test_result_tag == "autofail":
             return 7
 
     @staticmethod
