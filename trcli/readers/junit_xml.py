@@ -16,11 +16,10 @@ TestCase.id = IntAttr("id")
 TestSuite.id = IntAttr("id")
 JUnitXml.id = IntAttr("id")
 
-class AutomationPassed(Element):
-    _tag = 'autoPass'
-    type = 'success'
-    message = ''
-    text = ''
+class AutomationPassed(Result):
+    """Test result when the case passed automation."""
+
+    _tag = "autoPass"
 
     def __eq__(self, other):
         return super(AutomationPassed, self).__eq__(other)
