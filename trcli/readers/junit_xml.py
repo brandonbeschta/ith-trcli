@@ -19,7 +19,7 @@ JUnitXml.id = IntAttr("id")
 class AutomationPassed(Element):
     _tag = 'autoPass'
     type = 'success'
-    message = ''
+    message = 'hello from junit'
     text = ''
 
 class AutomationFailed(Element):
