@@ -1,7 +1,7 @@
 import ast
 from pathlib import Path
 from typing import Union
-from junitparser import Result, TestCase, TestSuite, JUnitXml, IntAttr, JUnitXmlError, Element, Attr
+from junitparser import TestCase, TestSuite, JUnitXml, IntAttr, JUnitXmlError, Element, Attr
 from xml.etree import ElementTree as etree
 from trcli.readers.file_parser import FileParser
 from trcli.data_classes.dataclass_testrail import (
@@ -19,8 +19,9 @@ JUnitXml.id = IntAttr("id")
 class AutomationPassed(Element):
     _tag = 'autoPass'
     type = 'success'
-    message = 'hello from junit'
+    message = ''
     text = ''
+
     def __eq__(self, other):
         return super(AutomationPassed, self).__eq__(other)
 
@@ -29,6 +30,7 @@ class AutomationFailed(Element):
     type = 'failure'
     message = 'Automation test failed'
     text = ''
+
     def __eq__(self, other):
         return super(AutomationFailed, self).__eq__(other)
 
