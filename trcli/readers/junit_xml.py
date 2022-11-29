@@ -86,6 +86,8 @@ class JunitParser(FileParser):
                             attachments.append(prop.value)
                 for autoPass in case.iterchildren(AutomationPassed):
                     case_result = [autoPass]
+                for autoFail in case.iterchildren(AutomationFailed):
+                    case_result = [autoFail]
                 test_cases.append(
                     TestRailCase(
                         section.id,
