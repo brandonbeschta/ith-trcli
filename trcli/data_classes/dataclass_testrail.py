@@ -41,6 +41,7 @@ class TestRailResult:
         4 - Retest
         5 - Failed
         6 - Auto Passed
+        7 - Auto Failure
         """
         if len(junit_result) == 0:
             return 1
@@ -48,9 +49,11 @@ class TestRailResult:
         if test_result_tag == "skipped":
             return 4
         elif test_result_tag == "error" or "failure":
-            return 1
+            return 5
         elif test_result_tag == "autoPass":
             return 6
+        elif test_result_tag == "autoFail":
+            return 7
 
     @staticmethod
     def get_comment_from_junit_element(junit_result: list) -> str:
