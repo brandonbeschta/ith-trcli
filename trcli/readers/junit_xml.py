@@ -18,14 +18,16 @@ JUnitXml.id = IntAttr("id")
 
 class AutomationPassed(Element):
     _tag = 'autoPass'
+    type = 'success'
+    message = ''
 
 class AutomationFailed(Element):
     _tag = 'autoFail'
-
+    type = 'failure'
+    message = 'Automation test failed'
 
 class Properties(Element):
     _tag = "properties"
-
 
 class Property(Element):
     _tag = "property"
@@ -74,10 +76,10 @@ class JunitParser(FileParser):
                             case_id = int(prop.value.lower().replace("c", ""))
                         if prop.name and prop.name.startswith("testrail_attachment"):
                             attachments.append(prop.value)
-                for _autoPass in case.iterchildren(AutomationPassed):
-                    case_result = 6
-                for _autoFail in case.iterchildren(AutomationFailed):
-                    case_result = 7
+                for autoPass in case.iterchildren(AutomationPassed):
+                    case_result = autoPass
+                for autoFail in case.iterchildren(AutomationFailed):
+                    case_result = autoFail
                 test_cases.append(
                     TestRailCase(
                         section.id,
