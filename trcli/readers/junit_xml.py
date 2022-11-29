@@ -77,9 +77,9 @@ class JunitParser(FileParser):
                         if prop.name and prop.name.startswith("testrail_attachment"):
                             attachments.append(prop.value)
                 for autoPass in case.iterchildren(AutomationPassed):
-                    case_result = autoPass
+                    case_result = [autoPass]
                 for autoFail in case.iterchildren(AutomationFailed):
-                    case_result = autoFail
+                    case_result = [autoFail]
                 test_cases.append(
                     TestRailCase(
                         section.id,
