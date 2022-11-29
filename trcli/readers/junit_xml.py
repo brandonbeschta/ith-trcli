@@ -20,11 +20,13 @@ class AutomationPassed(Element):
     _tag = 'autoPass'
     type = 'success'
     message = ''
+    text = ''
 
 class AutomationFailed(Element):
     _tag = 'autoFail'
     type = 'failure'
     message = 'Automation test failed'
+    text = ''
 
 class Properties(Element):
     _tag = "properties"
