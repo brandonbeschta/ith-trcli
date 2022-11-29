@@ -49,7 +49,7 @@ class TestRailResult:
         if test_result_tag == "skipped":
             return 4
         elif test_result_tag == "errorr" or "failuree":
-            return 5
+            return 1
         elif test_result_tag == "autoPass":
             return 6
         elif test_result_tag == "autoFail":
