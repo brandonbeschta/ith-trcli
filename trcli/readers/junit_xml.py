@@ -1,7 +1,7 @@
 import ast
 from pathlib import Path
 from typing import Union
-from junitparser import Result, TestCase, TestSuite, JUnitXml, IntAttr, JUnitXmlError, Element, Attr
+from junitparser import TestCase, TestSuite, JUnitXml, IntAttr, JUnitXmlError, Element, Attr
 from xml.etree import ElementTree as etree
 from trcli.readers.file_parser import FileParser
 from trcli.data_classes.dataclass_testrail import (
@@ -16,7 +16,7 @@ TestCase.id = IntAttr("id")
 TestSuite.id = IntAttr("id")
 JUnitXml.id = IntAttr("id")
 
-class AutomationPassed(Result):
+class AutomationPassed(Element):
     """Test result when the case passed automation."""
 
     _tag = "autoPass"
