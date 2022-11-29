@@ -17,9 +17,9 @@ TestSuite.id = IntAttr("id")
 JUnitXml.id = IntAttr("id")
 
 class AutomationPassed(Element):
-    _tag = 'autoFail'
-    type = 'failure'
-    message = 'Automation test failed'
+    _tag = 'autoPass'
+    type = 'success'
+    message = ''
     text = ''
 
     def __eq__(self, other):
@@ -86,8 +86,6 @@ class JunitParser(FileParser):
                             attachments.append(prop.value)
                 for autoPass in case.iterchildren(AutomationPassed):
                     case_result = [autoPass]
-                for autoFail in case.iterchildren(AutomationFailed):
-                    case_result = [autoFail]
                 test_cases.append(
                     TestRailCase(
                         section.id,
