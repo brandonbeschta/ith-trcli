@@ -43,7 +43,7 @@ class TestRailResult:
         6 - Auto Passed
         """
         if len(junit_result) == 0:
-            return 1
+            return 4
         test_result_tag = junit_result[0]._tag.lower()
         if test_result_tag == "skipped":
             return 4
